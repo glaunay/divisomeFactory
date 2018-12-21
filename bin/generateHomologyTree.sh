@@ -2,10 +2,10 @@
 
 function help() {
     cat <<EOF
-    Iterate through a folder tree storing BLAST RESULTS as logFile_InR6 and json files.
+    Iterate through a folder tree storing BLAST RESULTS to accumlate homology search results.
     Generate a unique json file with list of Psicquic interactors along w/ their homologs in R6
     Usage:
-    generateHitList.sh -i DATA_DIR -o OUTPUT_JSON_FILE
+    generateHomologyTree.sh -i DATA_DIR -o OUTPUT_JSON_FILE
     Options:
     -l ID_TEMPLATE_WR6_LIST
     --force
@@ -81,32 +81,18 @@ for iDir in $(find $DATA_DIR -mindepth 2 -name "*" -type d)
 do
     ##echo "##$iDir"
     ((total++))
-    if [ ! -e $iDir/logFileInR6 ]
-        then
-        (>&2 echo  "File not found : $iDir/logFileInR6")
-        [ "$FORCE" != "TRUE" ] && exit 1;
-    fi
-    if [ -s $iDir/logFileInR6 ] 
+    name=`echo $iDir | perl -pe 's/^.*\/([^\/]+)$/$1/'`
+    if [ -s $iDir/$name.json ] 
         then
         ((nonEmpty++))
-        name=`echo $iDir | perl -pe 's/^.*\/([^\/]+)$/$1/'`
-        jsonString=$jsonString$(echo -n "\"$name\" : ")
-        jsonString=$jsonString$(
-            perl -ne '
-            BEGIN{ @all = (); }
-                chomp;
-                if($_ =~ /^[\s]*$/) { next; }
-                @t = split(/[:,]/, $_); 
-                @t2 = map {"\"" . $_ . "\""} @t;
-                push(@all, "[" . join(",", @t2) . "]");
-                END{ print( "[" . join(",", @all) . "]\n"); }
-            ' $iDir/logFileInR6
-            )
+        jsonString=$jsonString$(perl -pe 's/^\{//;s/\}$/#/' $iDir/$name.json)
     fi
 done 
-
-echo $jsonString | perl -ne 'chomp; @all = split(/(?<=\]\])/); print "{\n" . join(",\n", @all) . "\n}\n" ' > $OUTPUT_JSON_FILE
+echo $jsonString | perl -ne 'chomp;@all=split(/\#/); print "{\n" . join(",\n",@all) . "\n}\n";' > $OUTPUT_JSON_FILE
 
 echo  "Processed $nonEmpty out of $total"
 exit 1
+
+
+#echo $jsonString | perl -ne 'chomp; @all = split(/(?<=\]\])/); print "{\n" . join(",\n", @all) . "\n}\n" ' > $OUTPUT_JSON_FILE
 

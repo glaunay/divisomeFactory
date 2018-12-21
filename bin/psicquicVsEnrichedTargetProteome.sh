@@ -10,12 +10,13 @@ function help() {
     cat <<EOF
     Run a serie of psiblast from PSICQUIC biomolecules into R6 extended proteome
     Usage:
-    psicquic_vs_r6.sh -o BLAST_OUTPUT_DIR -l UNIPROT_ID_LIST -t BLAST_TARGET_DB -q QUERY_PROTEIN_FASTA_FSB
+    psicquicVsEnrichedTargetProteome.sh -o BLAST_OUTPUT_DIR -l UNIPROT_ID_LIST -t BLAST_TARGET_DB -q QUERY_PROTEIN_FASTA_FSB -i TARGET_PROTEOME_FOLDER 
     Where,
         BLAST_OUTPUT_DIR is the location of the result folder tree
         UNIPROT_ID_LIST is a list of valid uniprot identifiers extracted from a PSICQUIC record
         BLAST_TARGET_DB is a blast formatted database (the R6 PROTEOME w/ its UNICLUST homologs)
         QUERY_PROTEIN_FASTA_FSB is the TrEMBL fasta FSbased database
+        TARGET_PROTEOME_FOLDER the folder containing the original proteome sequences
 EOF
 
 }
@@ -51,6 +52,11 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    -i|--targetFolder)
+    export TARGET_PROTEOME_FOLDER="$2"
+    shift # past argument
+    shift # past value
+    ;;
     -q|--querySeq)
     export FSDB="$2"
     shift # past argument
@@ -78,21 +84,20 @@ case $key in
 esac
 done
 
-if [ -z "${LIST}" ] || [ -z "${OUTPUT_DIR}" ] || [ -z "${DB}" ] || [ -z "${FSDB}" ]  
+set -- "${POSITIONAL[@]}" # restore positional parameters
+echo TARGET PROTEOME FOLDER = "${TARGET_PROTEOME_FOLDER}" 
+echo OUTPUT DIR            = "${OUTPUT_DIR}"
+echo TARGET DATABASE PATH  = "${DB}"
+echo QUERY DATABASE PATH   = "${FSDB}"
+echo R6 INDEX FILE         = "${R6_INDEX}"
+
+if [ -z "${LIST}" ] || [ -z "${OUTPUT_DIR}" ] || [ -z "${DB}" ] || [ -z "${FSDB}" ]  || [ -z "${R6_INDEX}" ]  
 then
     help; exit 1;
 fi
 
-
-set -- "${POSITIONAL[@]}" # restore positional parameters
-echo PROTEIN IDENTIER LIST = "${LIST}" 
-echo OUTPUT DIR  = "${OUTPUT_DIR}"
-echo TARGET DATABASE PATH     = "${DB}"
-echo QUERY DATABASE PATH    = "${FSDB}"
-
 LOGDIR=${OUTPUT_DIR}_logs
 mkdir -p $OUTPUT_DIR $LOGDIR
-
 
 
 totalSeq=`cat $LIST | wc -l`
@@ -110,14 +115,14 @@ do
         	NB=`cat $file | wc -l`
             cd $LOGDIR
         	export LIST=$file
-        	echo sbatch --array=1-$NB $SLIB_PATH/run_blast_array.sh \
-            --export $OUTPUT_DIR,$LIST,$DB,$FSDB
+        	echo sbatch --array=1-$NB $SLIB_PATH/lib/run_blast_array.sh \
+            --export $OUTPUT_DIR,$LIST,$DB,$FSDB,$R6_INDEX
             
 			
             if [ -z "$TEST" ]
 			then 
-				echo "GO>>" sbatch --array=1-$NB $SLIB_PATH/run_blast_array.sh \
-                    --export $OUTPUT_DIR,$LIST,$DB,$FSDB 
+				sbatch --array=1-$NB $SLIB_PATH/lib/run_blast_array.sh \
+                --export $OUTPUT_DIR,$LIST,$DB,$FSDB,$R6_INDEX
             fi
 	fi
 done

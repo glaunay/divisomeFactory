@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=IntvsR6R
+#SBATCH --job-name=TargetVsPsq
 #SBATCH --partition=medium-mobi
 #SBATCH --qos=medium-mobi
 #SBATCH --ntasks=1
@@ -13,6 +13,7 @@ echo DB $DB
 echo OUTPUT_DIR $OUTPUT_DIR
 echo running task id $SLURM_ARRAY_TASK_ID 
 echo FSBD $FSDB
+echo R6_INDEX $R6_INDEX
 
 module load ncbi-blast/2.2.26 
 module load uniprotDB_FS
@@ -41,45 +42,41 @@ echo destination folder is $final_folder
 
 if [ !  -s $final_folder/blast.out.gz ]
 then
+    mkdir -p $final_folder
 
-mkdir -p $final_folder
+    fastaFile=$name.fasta
+    python /software/mobi/uniprotDB_FS/2.0.0/scripts/uniprotFastaFS.py \
+        $FSDB --get $name \
+        > $fastaFile
 
-#logFile=$name.wlog
-fastaFile=$name.fasta
-#wget http://www.uniprot.org/uniprot/$name.fasta -O $fastaFile -a $logFile
-python /software/mobi/uniprotDB_FS/2.0.0/scripts/uniprotFastaFS_2.py $FSDB --get $name > $fastaFile 
-#echo "python /software/mobi/uniprotDB_FS/2.0.0/scripts/uniprotFastaFS_2.py $FSDB --get $name > $fastaFile"
-
-if [ !  -s $fastaFile ]
-then
-    echo "ERROR when retrieving fasta file from FSDB with id $name"
-    #echo "FF"
-    #cat $fastaFile
-    #echo "^^^"
-    #cat $logFile >> logfileError
-    rm $fastaFile
-    #rm $logFile
-    exit
-fi
+    if [ !  -s $fastaFile ]
+    then
+        echo "ERROR when retrieving fasta file from FSDB with id $name"
+        rm $fastaFile
+        exit
+    fi
 #rm $logFile
 
-blastpgp -j 3  -i $fastaFile  -d $DB -m 7 -b 2500 2> blast.err 1> blast.out
+    blastpgp -j 3  -i $fastaFile  -d $DB -m 7 -b 2500 2> blast.err 1> blast.out
 
-if [ -s blast.err ]
-	then
-	echo "WARNING when running blast, take a look at $final_folder/blast.err"
-	fi
-if [ -s blast.out ]
-then
-gzip blast.out	
-cp blast.out.gz $final_folder
-fi
+    if [ -s blast.err ]
+	    then
+	    echo "WARNING when running blast, take a look at $final_folder/blast.err"
+    fi
 
-cp blast.err $fastaFile $final_folder
+    if [ -s blast.out ]
+    then
+        python /software/mobi/divisomeFactory/1.0.0/lib/R6_blast_parser.py \
+        $R6_INDEX blast.out $name > $final_folder/$name.json
+        gzip blast.out
+        cp blast.out.gz $final_folder
+    fi
 
-echo job done
+    cp blast.err $fastaFile $final_folder
 
-else 
-echo nothing to do for id $name 
+    echo job done
+
+    else 
+    echo nothing to do for id $name 
 fi
 

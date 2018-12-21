@@ -1,11 +1,7 @@
-
-
 import xml.etree.ElementTree as ET
-import sys
+import sys, json
 
 def blastParser(listOfId, blastFile):
-    #fileName="/tmp/blast.out" ## Job Specific
-    #idList=["S7PMY1","A0A0V1HC87","A0A0V0S2P6","A0A1A9TZ10"] ## Should come from R6_uniprot.lst
     idList = []
     with open(listOfId, 'r') as f:
         for line in f:
@@ -13,6 +9,7 @@ def blastParser(listOfId, blastFile):
 
     fileName = blastFile
 
+    #print idList
 
     ## Extract from xml tree, the subtrees containing Hit_accession node text value present in idList
     ## Get last iteration
@@ -20,68 +17,81 @@ def blastParser(listOfId, blastFile):
     root = tree.getroot()
     parent_map = {c:p for p in root.iter() for c in p}
 
+    qLength = root.find('BlastOutput_query-len').text
     blast_all_iter_node = root.find('./BlastOutput_iterations')
-    lastIter_subnode=root.findall('./BlastOutput_iterations/Iteration/Iteration_iter-num')[-1]
-    lastIter_number=lastIter_subnode.text
-    for iter_node in root.findall('./BlastOutput_iterations/Iteration'):
-        if(iter_node.find('Iteration_iter-num').text != lastIter_number):
-            #print "removing iteration " + str(iter_node)
-            #print "from " + str(blast_all_iter_node)
-            blast_all_iter_node.remove(iter_node)
-            
-    lastIter = parent_map[lastIter_subnode]
-    Iteration_hits_node = lastIter.find("./Iteration_hits")
-    if not Iteration_hits_node:
-        return
-    
-    for hit in Iteration_hits_node.findall("./Hit"):
-        id = hit.find("Hit_accession")
-        if id.text not in idList:
-            #print "removing " + str(id) + ' from ' + str(Iteration_hits_node)
-            Iteration_hits_node.remove(hit)
-        else :
-            stack = []
-            coverList = []     
+    lastIter_subnode=blast_all_iter_node[-1]
 
-            ## Get hit score information and display stdout
-            # loop over Hsp get Hsp_hit-from, Hsp_hit-to
-            # permier arrive premier dedans
-            # condition pour rentrer, etre non-chevauchant avec ceux deja presents.
-            allowed = True
-            
 
-            #Iteration_hits_node.findall("./Hit/Hit_hsps/Hsp"):
-            for hsp in hit.findall("./Hit_hsps/Hsp"):
-                Hfrom = hsp[6].text  
-                Hto = hsp[7].text
-                seq = ""
+    data = {}
+    for hit in lastIter_subnode.findall("./Iteration_hits/Hit"):
+        hitID = hit.find("Hit_accession").text
+        if hitID not in idList:
+            continue
+        hLength = hit.find("Hit_len").text
+        stack = []
+        coverList = []     
 
-                for seq in coverList:
-                    #print seq, Hfrom, Hto
-              
-                    if (int(seq[0]) <= int(Hfrom) <= int(seq[1])) or (int(seq[0]) <= int(Hto) <= int(seq[1])):
-                        allowed = False
-                    if (int(Hfrom) <= int(seq[0]) and  int(Hto) >= int(seq[1])):
-                        allowed = False
+        ## Get hit score information and display stdout
+        # loop over Hsp get Hsp_hit-from, Hsp_hit-to
+        # permier arrive premier dedans
+        # condition pour rentrer, etre non-chevauchant avec ceux deja presents.
+        allowed = True
 
-                if allowed:
-                    stack.append([Hfrom, Hto, hit.find("Hit_hsps/Hsp/Hsp_positive").text, 
-                                  hit.find("Hit_hsps/Hsp/Hsp_identity").text, 
-                                  hit.find("Hit_hsps/Hsp/Hsp_evalue").text])
-                    
-                    coverList.append((Hfrom, Hto))
+        #Iteration_hits_node.findall("./Hit/Hit_hsps/Hsp"):
+        for hsp in hit.findall("./Hit_hsps/Hsp"):
+            (eValue, qFrom, qTo, hFrom, hTo) = [ n.text for n in hsp[3:8] ]
+            (hspIdentical, hpsPositive) =  [ n.text for n in hsp[10:12] ]
+            for seq in coverList:
+                if ( 
+                    ( int(hFrom) >= int(seq[0]) and int(hFrom) <= int(seq[1]) ) or 
+                    ( int(hTo)   >= int(seq[0]) and int(hTo)   <= int(seq[1]) ) 
+                ):              
+                    allowed = False
+                    break
+
+            if allowed:
+                stack.append(
+                [
+                   hLength, hFrom, hTo,
+                   qLength, qFrom, qTo,
+                   hpsPositive, hspIdentical,
+                   eValue,
+                ])
                 
-            print id.text + ":" + '|'.join([ ','.join(s) for s in stack ]) + '\n'
-            # S_i (stack_i[1] - stack_i[0] + 1]) / Hit_len 
-                 
-            
-    #ET.tostring(root)
-    #tree.write('/tmp/pruned_blast.xml')
+                coverList.append((hFrom, hTo))
+        data[hitID] = stack
+
+    return data
 
 if __name__ == '__main__':
-   blastParser(sys.argv[1], sys.argv[2])
+
+    data = blastParser(sys.argv[1], sys.argv[2])
+    if data:
+        print ( json.dumps( { sys.argv[3] : data }) )
+    else :
+        print ('No R6 related hits found', file=sys.stderr)
 
 
 
 
-
+'''
+<Hsp>
+              <Hsp_num>1</Hsp_num>
+              <Hsp_bit-score>87.5355</Hsp_bit-score>
+              <Hsp_score>216</Hsp_score>
+              <Hsp_evalue>3.02566e-17</Hsp_evalue>
+              <Hsp_query-from>3</Hsp_query-from>
+              <Hsp_query-to>98</Hsp_query-to>
+              <Hsp_hit-from>1</Hsp_hit-from>
+              <Hsp_hit-to>105</Hsp_hit-to>
+              <Hsp_query-frame>1</Hsp_query-frame>
+              <Hsp_hit-frame>1</Hsp_hit-frame>
+              <Hsp_identity>49</Hsp_identity>
+              <Hsp_positive>66</Hsp_positive>
+              <Hsp_gaps>9</Hsp_gaps>
+              <Hsp_align-len>105</Hsp_align-len>
+              <Hsp_qseq>ADKVKLSAKEILEKEFKTGVRGYKQEDVDKFLDMIIKDYETFHQEIEELQQENLQLKKQLEEASKKQPVQ---------SNTTNFDILKRLSNLEKHVFGSKLYD</Hsp_qseq>
+              <Hsp_hseq>MASIIFSAKDIFEQEFGREVRGYNKVEVDEFLDDVIKDYETYAALVKSLRQEIADLKEELTRKPKPSPVQAEPLEAAITSSMTNFDILKRLNRLEKEVFGKQILD</Hsp_hseq>
+              <Hsp_midline>   +  SAK+I E+EF   VRGY + +VD+FLD +IKDYET+   ++ L+QE   LK++L    K  PVQ         S+ TNFDILKRL+ LEK VFG ++ D</Hsp_midline>
+            </Hsp>
+'''
