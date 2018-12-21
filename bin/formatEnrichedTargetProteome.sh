@@ -41,7 +41,7 @@ case $key in
     shift # past argument
     ;;
     -t|--blastTag)
-    BLAST_DB_OUT="$2"
+    BLAST_DB_TAG="$2"
     shift # past argument
     ;;
 esac
@@ -82,29 +82,29 @@ done
 #TARGET_DIR="/mobi/group/databases/R6R_20181107"
 #BLAST_DB="/mobi/group/databases/blast/uniclust30_2018_08_seed.fasta"
 
-# dump all the ids of the  R6 sequences and homologues into a file
+# dump all the ids of the  target proteome sequences and homologues into a file
 cat $ENRICHED_DIR/swork/*/proteins.mfasta $INPUT_DIR/*.seq | grep ">" | cut -d"|" -f2 | sort -u  > non_redundant_ids.txt
 # remove from that list the ids of R6 proteome
-grep ">" $INPUT_DIR/*.seq | cut -d"|" -f2 | sort -u > R6_ids.txt
+grep ">" $INPUT_DIR/*.seq | cut -d"|" -f2 | sort -u > targetProteome_ids.txt
 # -v reverts the selection (non-matching line), -f tells grep to reat PATTERN in a file, and -w tells grep to consider PATTERN as full word
 # "the matching substring must either be at the beginning of the line, or preceded by a non-word constituent character.  Similarly, it
 #              must be either at the end of the line or followed by a non-word constituent character."
 # without this option, PATTERN
 # to test that it is correct, `grep -w -f R6_ids.txt  non_redundant_ids.txt | wc -l` should return exactly the number of lines that are stored in R6_ids.txt
-grep -w -v -f R6_ids.txt non_redundant_ids.txt > non_redundant_ids_without_R6.txt
+grep -w -v -f targetProteome_ids.txt non_redundant_ids.txt > non_redundant_ids_without_targetProteome.txt
 
 # get all the sequences of non_redundant_ids_without_R6.txt
 module load ncbi-blast/2.2.26
-fastacmd -l 60 -i non_redundant_ids_without_R6.txt -p T -d $BLAST_DB_IN -o non_redundant_seq_without_R6.mfasta
+fastacmd -l 60 -i non_redundant_ids_without_targetProteome.txt -p T -d $BLAST_DB_IN -o non_redundant_seq_without_targetProteome.mfasta
 # NB : the -l 60 is here to have same line length as in ../R6_proteome/ sequences.
 # I don't know wheter is has an influence or not for formatdb, but I rather have consistent formats
 
 # Add the sequences of R6 proteome
-cat non_redundant_seq_without_R6.mfasta ../R6_proteome/*.seq  > $BLAST_DB_TAG.mfasta
+cat non_redundant_seq_without_targetProteome.mfasta $INPUT_DIR/*.seq  > $BLAST_DB_TAG.mfasta
 
 # format the database
 formatdb  -o T -s T -t $BLAST_DB_TAG -i $BLAST_DB_TAG.mfasta
 # copy it
 cp ${BLAST_DB_TAG}* $TARGET_DIR
 
-echo "Blast database Name :$BLAST_DB_TAG, Size:$(wc -l $BLAST_DB_TAG.mfasta) Location: $TARGET_DIR"
+echo "Blast database Name :$BLAST_DB_TAG, Size:$(grep "^>" $BLAST_DB_TAG.mfasta | wc -l) Location: $TARGET_DIR"
