@@ -89,9 +89,9 @@ echo TARGET PROTEOME FOLDER = "${TARGET_PROTEOME_FOLDER}"
 echo OUTPUT DIR            = "${OUTPUT_DIR}"
 echo TARGET DATABASE PATH  = "${DB}"
 echo QUERY DATABASE PATH   = "${FSDB}"
-echo R6 INDEX FILE         = "${R6_INDEX}"
+#echo R6 INDEX FILE         = "${R6_INDEX}"
 
-if [ -z "${LIST}" ] || [ -z "${OUTPUT_DIR}" ] || [ -z "${DB}" ] || [ -z "${FSDB}" ]  || [ -z "${R6_INDEX}" ]  
+if [ -z "${LIST}" ] || [ -z "${OUTPUT_DIR}" ] || [ -z "${DB}" ] || [ -z "${FSDB}" ]  || [ -z "${TARGET_PROTEOME_FOLDER}" ]  
 then
     help; exit 1;
 fi
@@ -106,6 +106,9 @@ read MIN MAX < <(splitAndSplice $LIST $SLICE)
 
 echo "Processing slice list in range [ $MIN, $MAX ]";
 
+ls $TARGET_PROTEOME_FOLDER > `$PWD`/targetProteome.lst
+export TP_INDEX=`$PWD`/targetProteome.lst
+
 i=0
 for file in `ls $PWD/list_slice_* `
 do
@@ -116,13 +119,13 @@ do
             cd $LOGDIR
         	export LIST=$file
         	echo sbatch --array=1-$NB $SLIB_PATH/lib/run_blast_array.sh \
-            --export $OUTPUT_DIR,$LIST,$DB,$FSDB,$R6_INDEX
+            --export $OUTPUT_DIR,$LIST,$DB,$FSDB,$TP_INDEX
             
 			
             if [ -z "$TEST" ]
 			then 
 				sbatch --array=1-$NB $SLIB_PATH/lib/run_blast_array.sh \
-                --export $OUTPUT_DIR,$LIST,$DB,$FSDB,$R6_INDEX
+                --export $OUTPUT_DIR,$LIST,$DB,$FSDB,$TP_INDEX
             fi
 	fi
 done

@@ -5,7 +5,7 @@ def blastParser(listOfId, blastFile):
     idList = []
     with open(listOfId, 'r') as f:
         for line in f:
-            idList.append(line.split("|")[1])
+            idList.append(line.split("_")[1])
 
     fileName = blastFile
 
