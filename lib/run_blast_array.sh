@@ -13,7 +13,7 @@ echo DB $DB
 echo OUTPUT_DIR $OUTPUT_DIR
 echo running task id $SLURM_ARRAY_TASK_ID 
 echo FSBD $FSDB
-echo R6_INDEX $R6_INDEX
+echo TP_INDEX $TP_INDEX
 
 module load ncbi-blast/2.2.26 
 module load uniprotDB_FS
@@ -67,7 +67,7 @@ then
     if [ -s blast.out ]
     then
         python /software/mobi/divisomeFactory/1.0.0/lib/R6_blast_parser.py \
-        $R6_INDEX blast.out $name > $final_folder/$name.json
+        $TP_INDEX blast.out $name > $final_folder/$name.json
         gzip blast.out
         cp blast.out.gz $final_folder
     fi

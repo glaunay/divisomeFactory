@@ -96,6 +96,15 @@ then
     help; exit 1;
 fi
 
+if [ ! -d $TARGET_PROTEOME_FOLDER ];
+then
+    echo 'TARGET PROTEOME FOLDER not found'
+    help;
+    exit 1;
+fi
+
+
+
 LOGDIR=${OUTPUT_DIR}_logs
 mkdir -p $OUTPUT_DIR $LOGDIR
 
@@ -106,8 +115,8 @@ read MIN MAX < <(splitAndSplice $LIST $SLICE)
 
 echo "Processing slice list in range [ $MIN, $MAX ]";
 
-ls $TARGET_PROTEOME_FOLDER > `$PWD`/targetProteome.lst
-export TP_INDEX=`$PWD`/targetProteome.lst
+ls $TARGET_PROTEOME_FOLDER > $PWD/targetProteome.lst
+export TP_INDEX=$PWD/targetProteome.lst
 
 i=0
 for file in `ls $PWD/list_slice_* `
