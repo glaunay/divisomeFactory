@@ -50,8 +50,8 @@ Where,
 
 Use the [Psicquic web API](https://psicquic.github.io/MITAB27Format.html) and [providers endpoints](http://www.ebi.ac.uk/Tools/webservices/psicquic/registry/registry?action=STATUS) to collect protein interaction records. Attention should be paid to the experimental techniques used to detect interaction.
 
-Concatenated interaction record under mitab format need to be purged of entries featuring invalid uniprot identifier (obsolete of fragment entry) and for similar interaction in similar publication but from different providers (redundancy).
-Currently peformed in the jupyter notebook named "**interaction dataset building and uniprot FS API**".
+Concatenated interaction record under mitab format need to be purged of entries featuring invalid uniprot identifier (obsolete or fragment entry) and for similar interaction in similar publication but from different providers (redundancy).
+Currently peformed in the jupyter notebook named [interaction dataset building and uniprot FS API](https://github.com/glaunay/omegaLoMo).
 
 
 ### Looking for homologs of molecular interactors in the enriched target proteome
@@ -125,7 +125,7 @@ As an example look at the following data sample
 }
 ```
 
-In cyan $1^{st}$ level, a uniprot identifier of molecular interactor, $2^{nd}$ level the one of a target proteome element.
-In red, the $1<->2$ homology relationship data.
+In cyan 1<sup>st</sup> level, a uniprot identifier of molecular interactor, 2<sup>nd</sup> level the one of a target proteome element.
+In red, the 1<->2 homology relationship data.
 
 ## Installation & Dependancies
