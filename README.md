@@ -21,7 +21,7 @@ This will make the blast search more sensitive.
 We aim at expanding the set of target proteome with homologs sequence found in [uniclust](http://gwdu111.gwdg.de/~compbiol/uniclust/2018_08/). Version used here is **uniclust30_2018_08**.
 
 ```bash
-targetProteomeEnricher.sh -w /mobi/group/divisome/CLEAN_RUN/ENRICHMENT -i /mobi/group/divisome/R6_proteome -d /mobi/group/databases/blast/uniclust30_2018_08_seed.fasta
+targetProteomeEnricher.sh -w /mobi/group/divisome/CLEAN_RUN/ENRICHMENT -i /mobi/group/divisome/R6_proteome -d /mobi/group/databases/blast/uniclust30_2018_08_seed.fasta -f MULTI_FASTA_SOURCE
 ```
 
 Where,
@@ -129,3 +129,6 @@ In cyan 1<sup>st</sup> level, a uniprot identifier of molecular interactor, 2<su
 In red, the 1<->2 homology relationship data.
 
 ## Installation & Dependancies
+
+### Prepare Uniclust
+TODO
